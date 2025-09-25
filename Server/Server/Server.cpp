@@ -18,8 +18,11 @@ void Server::initialize()
                                           {
                                               this->onMessage( ws, message, opCode );
                                           },
-                                          .drain = []( uWS::WebSocket<false, true, ClientSession>* ws )
+                                          .drain = [](uWS::WebSocket<false, true, ClientSession>* ws)
                                           {
+                                              // 未送信バイト数を取得して表示
+                                              size_t remaining = ws->getBufferedAmount();
+                                              std::cout << "[Server] Remaining bytes to send: " << remaining << std::endl;
                                           },
                                           .close = [this]( uWS::WebSocket<false, true, ClientSession>* ws, int code, std::string_view msg )
                                           {
