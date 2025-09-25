@@ -100,15 +100,6 @@ void MainWindow::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
 
     // 受け取ったバイナリのサイズを表示
     qDebug() << "Received binary data size:" << binaryMessage.size() << "bytes";
-
-    // 必要であれば、ここでデータを処理する
-    // 例: ファイルに保存する場合
-    QFile file("received_data.bin");
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(binaryMessage);
-        file.close();
-        qDebug() << "Binary data saved to received_data.bin";
-    }
 }
 
 void MainWindow::websocketError( QAbstractSocket::SocketError error )

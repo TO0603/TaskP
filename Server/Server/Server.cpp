@@ -55,7 +55,7 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
     if (received.contains("type") && received["type"].get<std::string>() == "request")
     {
         // 500MB のバイナリデータを作成
-        constexpr size_t dataSize = 500ULL * 1024ULL * 1024ULL; // 500 MB
+        constexpr size_t dataSize = 100ULL * 1024ULL * 1024ULL; // 500 MB
         std::vector<uint8_t> binaryData(dataSize);
 
         // 中身を初期化（例：インデックス mod 256）
@@ -63,8 +63,7 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
             binaryData[i] = static_cast<uint8_t>(i % 256);
         }
 
-        std::cout << "Generated 500MB binary data: "
-                  << binaryData.size() << " bytes" << std::endl;
+        std::cout << "Generated 100MB binary data: " << binaryData.size() << " bytes" << std::endl;
 
         // 送信する場合（注意：巨大データを一度に送ると重い）
         ws->send(std::string_view(reinterpret_cast<char*>(binaryData.data()), binaryData.size()), uWS::BINARY);
