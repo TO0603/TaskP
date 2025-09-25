@@ -1,0 +1,72 @@
+#include "Server.h"
+
+Server::Server( int port )
+    : m_port( port )
+{
+    initialize();
+}
+
+void Server::initialize()
+{
+    m_u_web_sockets.ws<ClientSession>( "/*",
+                                      {
+                                          .open = [this]( uWS::WebSocket<false, true, ClientSession>* ws )
+                                          {
+                                              this->onOpen( ws );
+                                          },
+                                          .message = [this]( uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode opCode )
+                                          {
+                                              this->onMessage( ws, message, opCode );
+                                          },
+                                          .drain = []( uWS::WebSocket<false, true, ClientSession>* ws )
+                                          {
+                                          },
+                                          .close = [this]( uWS::WebSocket<false, true, ClientSession>* ws, int code, std::string_view msg )
+                                          {
+                                              this->onClose( ws, code, msg );
+                                          }
+                                      } );
+
+    m_u_web_sockets.listen( m_port, [this]( auto* token )
+                           {
+                               if( token )
+                                   std::cout << "[Server] Listening on port " << m_port << std::endl;
+                               else
+                                   std::cerr << "[Server] Failed to listen on port " << m_port << std::endl;
+                           } ).run();
+}
+
+void Server::onOpen( uWS::WebSocket<false, true, ClientSession>* ws )
+{
+    std::cout << __func__ << std::endl;
+}
+
+void Server::onClose( uWS::WebSocket<false, true, ClientSession>* ws, int, std::string_view )
+{
+    std::cout << __func__ << std::endl;
+}
+
+void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode )
+{
+    std::cout << __func__ << std::endl;
+    nlohmann::json received;
+    received = nlohmann::json::parse(message);
+
+    if (received.contains("type") && received["type"].get<std::string>() == "request")
+    {
+        // 500MB のバイナリデータを作成
+        constexpr size_t dataSize = 500ULL * 1024ULL * 1024ULL; // 500 MB
+        std::vector<uint8_t> binaryData(dataSize);
+
+        // 中身を初期化（例：インデックス mod 256）
+        for (size_t i = 0; i < dataSize; ++i) {
+            binaryData[i] = static_cast<uint8_t>(i % 256);
+        }
+
+        std::cout << "Generated 500MB binary data: "
+                  << binaryData.size() << " bytes" << std::endl;
+
+        // 送信する場合（注意：巨大データを一度に送ると重い）
+        ws->send(std::string_view(reinterpret_cast<char*>(binaryData.data()), binaryData.size()), uWS::BINARY);
+    }
+}
