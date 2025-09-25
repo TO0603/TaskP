@@ -1,16 +1,16 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+#include "Client.h"
+#include "ui_Client.h"
 
-MainWindow::MainWindow(QWidget *parent)
+Client::Client(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    , ui(new Ui::Client)
     , m_web_socket(nullptr)
 {
     ui->setupUi(this);
     initialize();
 }
 
-MainWindow::~MainWindow()
+Client::~Client()
 {
     delete ui;
     if( m_web_socket )
@@ -19,15 +19,15 @@ MainWindow::~MainWindow()
     }
 }
 
-void MainWindow::initialize()
+void Client::initialize()
 {
-    connect( ui->connectPushButton    , &QPushButton::clicked, this, &MainWindow::onConnect );      // 接続
-    connect( ui->disconnectPushButton , &QPushButton::clicked, this, &MainWindow::onDisconnect );   // 切断
-    connect( ui->requestPushButton    , &QPushButton::clicked, this, &MainWindow::onRequest );      // 要求(テスト)
-    connect( ui->chatPushButton       , &QPushButton::clicked, this, &MainWindow::onChat );         // チャットメッセージ送信
+    connect( ui->connectPushButton    , &QPushButton::clicked, this, &Client::onConnect );      // 接続
+    connect( ui->disconnectPushButton , &QPushButton::clicked, this, &Client::onDisconnect );   // 切断
+    connect( ui->requestPushButton    , &QPushButton::clicked, this, &Client::onRequest );      // 要求(テスト)
+    connect( ui->chatPushButton       , &QPushButton::clicked, this, &Client::onChat );         // チャットメッセージ送信
 }
 
-void MainWindow::onConnect()
+void Client::onConnect()
 {
     const QString address = ui->addressLineEdit->text().trimmed();
     if( address.isEmpty() ) // アドレスが空である場合は何もしない
@@ -37,16 +37,16 @@ void MainWindow::onConnect()
 
     m_web_socket = new QWebSocket();
 
-    connect( m_web_socket, &QWebSocket::connected                                               , this, &MainWindow::websocketConnected );               // 接続成功
-    connect( m_web_socket, &QWebSocket::disconnected                                            , this, &MainWindow::websocketDisconnected );            // 接続切断
-    connect( m_web_socket, &QWebSocket::textMessageReceived                                     , this, &MainWindow::websocketTextMessageReceived );     // テキストメッセージ受信
-    connect( m_web_socket, &QWebSocket::binaryMessageReceived                                   , this, &MainWindow::websocketBinaryMessageReceived );   // バイナリメッセージ受信
-    connect( m_web_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &MainWindow::websocketError );                   // エラー
+    connect( m_web_socket, &QWebSocket::connected                                               , this, &Client::websocketConnected );               // 接続成功
+    connect( m_web_socket, &QWebSocket::disconnected                                            , this, &Client::websocketDisconnected );            // 接続切断
+    connect( m_web_socket, &QWebSocket::textMessageReceived                                     , this, &Client::websocketTextMessageReceived );     // テキストメッセージ受信
+    connect( m_web_socket, &QWebSocket::binaryMessageReceived                                   , this, &Client::websocketBinaryMessageReceived );   // バイナリメッセージ受信
+    connect( m_web_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &Client::websocketError );                   // エラー
 
     m_web_socket->open( QUrl( address ) );
 }
 
-void MainWindow::onDisconnect()
+void Client::onDisconnect()
 {
     if( m_web_socket )
     {
@@ -60,7 +60,7 @@ void MainWindow::onDisconnect()
     }
 }
 
-void MainWindow::onRequest()
+void Client::onRequest()
 {
     if( !m_web_socket || m_web_socket->state() != QAbstractSocket::ConnectedState ) return;
 
@@ -74,7 +74,7 @@ void MainWindow::onRequest()
     m_web_socket->sendTextMessage( message );
 }
 
-void MainWindow::onChat()
+void Client::onChat()
 {
     if( !m_web_socket || m_web_socket->state() != QAbstractSocket::ConnectedState ) return; // 接続されていなければ送信しない
 
@@ -92,7 +92,7 @@ void MainWindow::onChat()
     ui->chatLineEdit->clear();
 }
 
-void MainWindow::websocketConnected()    // 接続成功
+void Client::websocketConnected()    // 接続成功
 {
     QString log = "Connection successful : " + m_web_socket->requestUrl().toString();
 
@@ -100,13 +100,13 @@ void MainWindow::websocketConnected()    // 接続成功
     ui->disconnectPushButton->setEnabled( true );
 }
 
-void MainWindow::websocketDisconnected() // 接続切断
+void Client::websocketDisconnected() // 接続切断
 {
     ui->connectPushButton->setEnabled( true );
     ui->disconnectPushButton->setEnabled( false );
 }
 
-void MainWindow::websocketTextMessageReceived(const QString& textMessage)
+void Client::websocketTextMessageReceived(const QString& textMessage)
 {
     qDebug() << __func__;
 
@@ -123,7 +123,7 @@ void MainWindow::websocketTextMessageReceived(const QString& textMessage)
     }
 }
 
-void MainWindow::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
+void Client::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
 {
     // メソッド名を出力
     qDebug() << __func__;
@@ -132,7 +132,7 @@ void MainWindow::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
     qDebug() << "Received binary data size:" << binaryMessage.size() << "bytes";
 }
 
-void MainWindow::websocketError( QAbstractSocket::SocketError error )
+void Client::websocketError( QAbstractSocket::SocketError error )
 {
     qDebug() << "WebSocket error:" << error;
 }

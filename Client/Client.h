@@ -1,5 +1,5 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef CLIENT_H
+#define CLIENT_H
 
 #include <QMainWindow>
 #include <QWebSocket>
@@ -9,22 +9,22 @@
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
-class MainWindow;
+class Client;
 }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
+class Client : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    Client(QWidget *parent = nullptr);
+    ~Client();
 
 private:
     void initialize();
 
-    Ui::MainWindow *ui;
+    Ui::Client *ui;
     QWebSocket* m_web_socket = nullptr;
 
 private slots:
@@ -40,4 +40,4 @@ private slots: // WebSocket
     void websocketBinaryMessageReceived( const QByteArray& binary );        // 受信(バイナリ)
     void websocketError( QAbstractSocket::SocketError error );              // エラー
 };
-#endif // MAINWINDOW_H
+#endif // CLIENT_H
