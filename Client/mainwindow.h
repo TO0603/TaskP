@@ -31,6 +31,7 @@ private slots:
     void onConnect();
     void onDisconnect();
     void onRequest();
+    void onChat();
 
 private slots: // WebSocket
     void websocketConnected();                                              // 接続

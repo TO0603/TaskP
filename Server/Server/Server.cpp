@@ -68,4 +68,18 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
         // 送信する場合（注意：巨大データを一度に送ると重い）
         ws->send(std::string_view(reinterpret_cast<char*>(binaryData.data()), binaryData.size()), uWS::BINARY);
     }
+    else if (received.contains("type") && received["type"].get<std::string>() == "chat")
+    {
+        if (received.contains("chat_message") && received["chat_message"].is_string()) {
+            std::string chat = received["chat_message"].get<std::string>();
+            nlohmann::json chat_message =
+                {
+                    { "type", "chat" },
+                    { "chat_message", chat }
+                };
+            ws->send(chat_message.dump(), uWS::OpCode::TEXT); // send は文字列に変換
+        } else {
+            std::cout << "[Warning] chat_message missing or invalid type" << std::endl;
+        }
+    }
 }

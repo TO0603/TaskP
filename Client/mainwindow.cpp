@@ -24,6 +24,7 @@ void MainWindow::initialize()
     connect( ui->connectPushButton    , &QPushButton::clicked, this, &MainWindow::onConnect );      // 接続
     connect( ui->disconnectPushButton , &QPushButton::clicked, this, &MainWindow::onDisconnect );   // 切断
     connect( ui->requestPushButton    , &QPushButton::clicked, this, &MainWindow::onRequest );      // 要求(テスト)
+    connect( ui->chatPushButton       , &QPushButton::clicked, this, &MainWindow::onChat );         // チャットメッセージ送信
 }
 
 void MainWindow::onConnect()
@@ -73,6 +74,23 @@ void MainWindow::onRequest()
     m_web_socket->sendTextMessage( message );
 }
 
+void MainWindow::onChat()
+{
+    if( !m_web_socket || m_web_socket->state() != QAbstractSocket::ConnectedState ) return; // 接続されていなければ送信しない
+
+    QString text = ui->chatLineEdit->text().trimmed();
+    if( text.isEmpty() ) return; // 何も入力されていない場合は何もしない
+
+    QJsonObject jsonMessage;
+    jsonMessage["type"] = QString::fromUtf8( "chat" );
+    jsonMessage[ QString::fromUtf8( "chat_message" ) ]   = text;
+
+    QJsonDocument doc( jsonMessage );
+    QString message = doc.toJson( QJsonDocument::Compact );
+
+    m_web_socket->sendTextMessage( message );
+}
+
 void MainWindow::websocketConnected()    // 接続成功
 {
     QString log = "Connection successful : " + m_web_socket->requestUrl().toString();
@@ -87,9 +105,21 @@ void MainWindow::websocketDisconnected() // 接続切断
     ui->disconnectPushButton->setEnabled( false );
 }
 
-void MainWindow::websocketTextMessageReceived( const QString& textMessage ) // テキストメッセージ受信
+void MainWindow::websocketTextMessageReceived(const QString& textMessage)
 {
-    qDebug() << __func__;
+    qDebug() << __func__ << textMessage;
+
+    QJsonDocument doc = QJsonDocument::fromJson(textMessage.toUtf8());
+    if (!doc.isObject()) return; // JSON 形式でない場合は無視
+
+    QJsonObject jsonObject = doc.object();
+    const QString type = jsonObject.value("type").toString();
+
+    if (type == "chat")
+    {
+        QString chatMessage = jsonObject.value("chat_message").toString();
+        ui->chatTextBrowser->append(chatMessage);
+    }
 }
 
 #include <QFile>
