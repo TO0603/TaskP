@@ -23,9 +23,12 @@ public:
 
 private:
     void initialize();
+    void updateButtons();
+    bool areSocketsConnected() const;
 
     Ui::Client *ui;
-    QWebSocket* m_web_socket = nullptr;
+    QWebSocket* m_binary_socket = nullptr;
+    QWebSocket* m_text_socket = nullptr;
 
 private slots:
     void onConnect();
@@ -34,8 +37,10 @@ private slots:
     void onChat();
 
 private slots: // WebSocket
-    void websocketConnected();                                              // 接続
-    void websocketDisconnected();                                           // 切断
+    void binaryWebsocketConnected();                                        // 接続
+    void binaryWebsocketDisconnected();                                     // 切断
+    void textWebsocketConnected();                                        // 接続
+    void textWebsocketDisconnected();                                     // 切断
     void websocketTextMessageReceived( const QString& receivedMessage );    // 受信(テキスト)
     void websocketBinaryMessageReceived( const QByteArray& binary );        // 受信(バイナリ)
     void websocketError( QAbstractSocket::SocketError error );              // エラー
