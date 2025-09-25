@@ -89,6 +89,7 @@ void MainWindow::onChat()
     QString message = doc.toJson( QJsonDocument::Compact );
 
     m_web_socket->sendTextMessage( message );
+    ui->chatLineEdit->clear();
 }
 
 void MainWindow::websocketConnected()    // 接続成功
@@ -107,7 +108,7 @@ void MainWindow::websocketDisconnected() // 接続切断
 
 void MainWindow::websocketTextMessageReceived(const QString& textMessage)
 {
-    qDebug() << __func__ << textMessage;
+    qDebug() << __func__;
 
     QJsonDocument doc = QJsonDocument::fromJson(textMessage.toUtf8());
     if (!doc.isObject()) return; // JSON 形式でない場合は無視
@@ -122,7 +123,6 @@ void MainWindow::websocketTextMessageReceived(const QString& textMessage)
     }
 }
 
-#include <QFile>
 void MainWindow::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
 {
     // メソッド名を出力
