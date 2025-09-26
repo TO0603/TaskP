@@ -36,6 +36,17 @@ void Server::initialize()
                            } ).run();
 }
 
+void sendBinaryInChunks(uWS::WebSocket<false, true, ClientSession>* ws, std::vector<uint8_t>& data) {
+    constexpr size_t chunkSize = 10ULL * 1024ULL * 1024ULL; // 10MB
+    size_t offset = 0;
+
+    while(offset < data.size()) {
+        size_t sz = std::min(chunkSize, data.size() - offset);
+        ws->send(std::string_view(reinterpret_cast<char*>(data.data() + offset), sz), uWS::BINARY);
+        offset += sz;
+    }
+}
+
 void Server::onOpen( uWS::WebSocket<false, true, ClientSession>* ws )
 {
     std::cout << __func__ << std::endl;
@@ -52,21 +63,14 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
     nlohmann::json received;
     received = nlohmann::json::parse(message);
 
-    if (received.contains("type") && received["type"].get<std::string>() == "request")
-    {
+    if (received.contains("type") && received["type"].get<std::string>() == "request") {
         // 500MB のバイナリデータを作成
-        constexpr size_t dataSize = 100ULL * 1024ULL * 1024ULL; // 500 MB
+        constexpr size_t dataSize = 500ULL * 1024ULL * 1024ULL;
         std::vector<uint8_t> binaryData(dataSize);
+        for (size_t i = 0; i < dataSize; ++i) binaryData[i] = static_cast<uint8_t>(i % 256);
 
-        // 中身を初期化（例：インデックス mod 256）
-        for (size_t i = 0; i < dataSize; ++i) {
-            binaryData[i] = static_cast<uint8_t>(i % 256);
-        }
-
-        std::cout << "Generated 100MB binary data: " << binaryData.size() << " bytes" << std::endl;
-
-        // 送信する場合（注意：巨大データを一度に送ると重い）
-        ws->send(std::string_view(reinterpret_cast<char*>(binaryData.data()), binaryData.size()), uWS::BINARY);
+        std::cout << "Generated 500MB binary data, start sending..." << std::endl;
+        sendBinaryInChunks(ws, binaryData); // チャンク送信
     }
     else if (received.contains("type") && received["type"].get<std::string>() == "chat")
     {
