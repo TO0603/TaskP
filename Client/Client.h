@@ -3,9 +3,12 @@
 
 #include <QMainWindow>
 #include <QWebSocket>
-
 #include <QJsonObject>
 #include <QJsonDocument>
+
+#include <kvs/qt/Application>
+#include <kvs/qt/Screen>
+#include <kvs/StochasticRenderingCompositor>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -18,13 +21,15 @@ class Client : public QMainWindow
     Q_OBJECT
 
 public:
-    Client(QWidget *parent = nullptr);
+    Client( kvs::qt::Application& app, QWidget *parent = nullptr );
     ~Client();
 
 private:
     void initialize();
 
     Ui::Client *ui;
+    kvs::qt::Screen* m_screen                           = nullptr;
+    kvs::StochasticRenderingCompositor* m_compositor    = nullptr;
     QWebSocket* m_web_socket = nullptr;
 
 private slots:

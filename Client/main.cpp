@@ -4,8 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    Client client;
-    client.show();
-    return a.exec();
+    kvs::qt::Application app( argc, argv );
+    Client client( app );;
+    return app.run();
 }

@@ -1,30 +1,57 @@
 #include "Client.h"
 #include "ui_Client.h"
 
-Client::Client(QWidget *parent)
+Client::Client( kvs::qt::Application& app, QWidget *parent )
     : QMainWindow(parent)
     , ui(new Ui::Client)
+    , m_screen( new kvs::qt::Screen( &app ) )
+    , m_compositor( new kvs::StochasticRenderingCompositor( m_screen->scene() ) )
     , m_web_socket(nullptr)
 {
-    ui->setupUi(this);
     initialize();
 }
 
 Client::~Client()
-{
-    delete ui;
+{    
+    delete m_compositor;
+    delete m_screen;
     if( m_web_socket )
     {
         m_web_socket->deleteLater();
     }
+    delete ui;
 }
 
+#include <kvs/HydrogenVolumeData>
+#include <kvs/TransferFunction>
+#include <kvs/CellByCellMetropolisSampling>
+#include <kvs/ParticleBasedRenderer>
 void Client::initialize()
 {
+    ui->setupUi(this);
+
+    m_compositor->setRepetitionLevel( 4 ); // コンポジターのリピートレベルを設定 初期値:4
+    m_screen->setEvent( m_compositor );
+
+    m_screen->setFixedSize( 620, 620 );
+    ui->screenArea->addWidget( m_screen );
+
     connect( ui->connectPushButton    , &QPushButton::clicked, this, &Client::onConnect );      // 接続
     connect( ui->disconnectPushButton , &QPushButton::clicked, this, &Client::onDisconnect );   // 切断
     connect( ui->requestPushButton    , &QPushButton::clicked, this, &Client::onRequest );      // 要求(テスト)
     connect( ui->chatPushButton       , &QPushButton::clicked, this, &Client::onChat );         // チャットメッセージ送信
+    this->show();
+
+    {
+        auto* volume = new kvs::HydrogenVolumeData( { 32, 32, 32 } );
+        const auto repeat = 4; // number of repetitions
+        const auto step = 0.5f; // sampling step
+        const auto tfunc = kvs::TransferFunction( 256 ); // transfer function
+        auto* object = new kvs::CellByCellMetropolisSampling( volume, repeat, step, tfunc );
+        delete volume;
+        auto* renderer = new kvs::glsl::ParticleBasedRenderer();
+        m_screen->registerObject( object, renderer );
+    }
 }
 
 void Client::onConnect()
