@@ -60,8 +60,8 @@ void Client::onConnect()
 
     m_binary_socket = new QWebSocket();
     m_binary_socket->setParent(this);
-    connect( m_binary_socket, &QWebSocket::connected                                               , this, &Client::binaryWebsocketConnected );               // 接続成功
-    connect( m_binary_socket, &QWebSocket::disconnected                                            , this, &Client::binaryWebsocketDisconnected );            // 接続切断
+    connect( m_binary_socket, &QWebSocket::connected                                               , this, &Client::binaryWebsocketConnected );         // 接続成功
+    connect( m_binary_socket, &QWebSocket::disconnected                                            , this, &Client::binaryWebsocketDisconnected );      // 接続切断
     connect( m_binary_socket, &QWebSocket::textMessageReceived                                     , this, &Client::websocketTextMessageReceived );     // テキストメッセージ受信
     connect( m_binary_socket, &QWebSocket::binaryMessageReceived                                   , this, &Client::websocketBinaryMessageReceived );   // バイナリメッセージ受信
     connect( m_binary_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &Client::websocketError );                   // エラー
@@ -69,11 +69,11 @@ void Client::onConnect()
 
     m_text_socket = new QWebSocket();
     m_text_socket->setParent(this);
-    connect( m_text_socket, &QWebSocket::connected                                               , this, &Client::textWebsocketConnected );               // 接続成功
-    connect( m_text_socket, &QWebSocket::disconnected                                            , this, &Client::textWebsocketDisconnected );            // 接続切断
-    connect( m_text_socket, &QWebSocket::textMessageReceived                                     , this, &Client::websocketTextMessageReceived );     // テキストメッセージ受信
-    connect( m_text_socket, &QWebSocket::binaryMessageReceived                                   , this, &Client::websocketBinaryMessageReceived );   // バイナリメッセージ受信
-    connect( m_text_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &Client::websocketError );                   // エラー
+    connect( m_text_socket, &QWebSocket::connected                                               , this, &Client::textWebsocketConnected );             // 接続成功
+    connect( m_text_socket, &QWebSocket::disconnected                                            , this, &Client::textWebsocketDisconnected );          // 接続切断
+    connect( m_text_socket, &QWebSocket::textMessageReceived                                     , this, &Client::websocketTextMessageReceived );       // テキストメッセージ受信
+    connect( m_text_socket, &QWebSocket::binaryMessageReceived                                   , this, &Client::websocketBinaryMessageReceived );     // バイナリメッセージ受信
+    connect( m_text_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &Client::websocketError );                     // エラー
     m_text_socket->open( QUrl( address ) );
 }
 
