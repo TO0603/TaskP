@@ -46,6 +46,10 @@ void Server::onClose( uWS::WebSocket<false, true, ClientSession>* ws, int, std::
     std::cout << __func__ << std::endl;
 }
 
+#include <kvs/HydrogenVolumeData>
+#include <kvs/TransferFunction>
+#include <kvs/RGBColor>
+#include <kvs/CellByCellMetropolisSampling>
 void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode )
 {
     std::cout << __func__ << std::endl;
@@ -54,19 +58,46 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
 
     if (received.contains("type") && received["type"].get<std::string>() == "request")
     {
-        // 500MB のバイナリデータを作成
-        constexpr size_t dataSize = 100ULL * 1024ULL * 1024ULL; // 500 MB
-        std::vector<uint8_t> binaryData(dataSize);
+        auto* volume = new kvs::HydrogenVolumeData( { 32, 32, 32 } );
+        const auto repeat = 4; // number of repetitions
+        const auto step = 0.5f; // sampling step
+        const auto tfunc = kvs::TransferFunction( 256 ); // transfer function
+        auto* object = new kvs::CellByCellMetropolisSampling( volume, repeat, step, tfunc );
+        delete volume;
 
-        // 中身を初期化（例：インデックス mod 256）
-        for (size_t i = 0; i < dataSize; ++i) {
-            binaryData[i] = static_cast<uint8_t>(i % 256);
-        }
+        const size_t numberOfVertices = object->numberOfVertices();
+        const kvs::ValueArray<kvs::Real32>& coords = object->coords();
+        const kvs::ValueArray<kvs::UInt8>& colors = object->colors();
+        const kvs::ValueArray<kvs::Real32>& normals = object->normals();
+        const kvs::Vec3& minObjectCoords = object->minObjectCoord();
+        const kvs::Vec3& maxObjectCoords = object->maxObjectCoord();
 
-        std::cout << "Generated 100MB binary data: " << binaryData.size() << " bytes" << std::endl;
+        size_t total_size =
+            sizeof( size_t ) +
+            sizeof( kvs::Real32 ) * 3 * numberOfVertices +
+            sizeof( kvs::UInt8 )  * 3 * numberOfVertices +
+            sizeof( kvs::Real32 ) * 3 * numberOfVertices +
+            sizeof( kvs::Real32 ) * 3 +
+            sizeof( kvs::Real32 ) * 3;
 
-        // 送信する場合（注意：巨大データを一度に送ると重い）
-        ws->send(std::string_view(reinterpret_cast<char*>(binaryData.data()), binaryData.size()), uWS::BINARY);
+        std::vector<char> buffer( total_size );
+        size_t offset = 0;
+        std::memcpy( buffer.data() + offset, &numberOfVertices, sizeof( size_t ) );
+        offset += sizeof( size_t );
+        std::memcpy( buffer.data() + offset, coords.data(), sizeof( kvs::Real32 ) * 3 * numberOfVertices );
+        offset += sizeof( kvs::Real32 ) * 3 * numberOfVertices;
+        std::memcpy( buffer.data() + offset, colors.data(), sizeof( kvs::UInt8 ) * 3 * numberOfVertices );
+        offset += sizeof( kvs::UInt8 ) * 3 * numberOfVertices;
+        std::memcpy( buffer.data() + offset, normals.data(), sizeof( kvs::Real32 ) * 3 * numberOfVertices );
+        offset += sizeof( kvs::Real32 ) * 3 * numberOfVertices;
+        std::memcpy( buffer.data() + offset, minObjectCoords.data(), sizeof( kvs::Real32 ) * 3 );
+        offset += sizeof( kvs::Real32 ) * 3;
+        std::memcpy( buffer.data() + offset, maxObjectCoords.data(), sizeof( kvs::Real32 ) * 3 );
+        offset += sizeof( kvs::Real32 ) * 3;
+
+        delete object;
+
+        ws->send( std::string_view( buffer.data(), buffer.size() ), uWS::OpCode::BINARY );
     }
     else if (received.contains("type") && received["type"].get<std::string>() == "chat")
     {
