@@ -6,7 +6,7 @@
 #else
 #include <App.h>
 #endif
-#include "../../Shared/json.hpp"
+#include "../Shared/json.hpp"
 
 struct ClientSession
 {
