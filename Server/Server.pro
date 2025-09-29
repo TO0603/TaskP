@@ -177,6 +177,17 @@ macx {
     !isEmpty( KVS_DIR ) {
         LIBS += -L$$KVS_DIR/lib -lkvsCore
     }
+    equals( KVS_ENABLE_OPENGL, "1" ) {
+        LIBS += -framework OpenGL
+    }
+    equals( KVS_ENABLE_GLU, "1" ) {
+    }
+    equals( KVS_ENABLE_GLEW, "1" ) {
+    }
+    equals( KVS_SUPPORT_GLUT, "1" ) {
+        LIBS += -framework GLUT
+        LIBS += -L$$KVS_DIR/lib -lkvsSupportGLUT
+    }
     !isEmpty( KVS_UWS_DIR ) {
         LIBS += $$KVS_UWS_DIR/uSockets/uSockets.a
         OPENSSL_PATH = /opt/homebrew/opt/openssl@3
