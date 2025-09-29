@@ -1,9 +1,11 @@
 #include "Client.h"
 #include "ui_Client.h"
 
-Client::Client(QWidget *parent)
+Client::Client( kvs::qt::Application& app, QWidget *parent )
     : QMainWindow(parent)
     , ui(new Ui::Client)
+    , m_screen( new kvs::qt::Screen( &app ) )
+    , m_compositor( new kvs::StochasticRenderingCompositor( m_screen->scene() ) )
     , m_binary_socket(nullptr)
     , m_text_socket(nullptr)
 {
@@ -27,10 +29,16 @@ Client::~Client()
 
 void Client::initialize()
 {
+    m_compositor->setRepetitionLevel( 4 ); // コンポジターのリピートレベルを設定 初期値:4
+    m_screen->setEvent( m_compositor );
+    m_screen->setFixedSize( 620, 620 );
+    ui->screenArea->addWidget( m_screen );
+
     connect( ui->connectPushButton    , &QPushButton::clicked, this, &Client::onConnect );      // 接続
     connect( ui->disconnectPushButton , &QPushButton::clicked, this, &Client::onDisconnect );   // 切断
     connect( ui->requestPushButton    , &QPushButton::clicked, this, &Client::onRequest );      // 要求(テスト)
     connect( ui->chatPushButton       , &QPushButton::clicked, this, &Client::onChat );         // チャットメッセージ送信
+    this->show();
 }
 
 void Client::updateButtons()

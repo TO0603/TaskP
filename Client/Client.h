@@ -7,6 +7,10 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <kvs/qt/Application>
+#include <kvs/qt/Screen>
+#include <kvs/StochasticRenderingCompositor>
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class Client;
@@ -18,7 +22,7 @@ class Client : public QMainWindow
     Q_OBJECT
 
 public:
-    Client(QWidget *parent = nullptr);
+    Client( kvs::qt::Application& app, QWidget *parent = nullptr );
     ~Client();
 
 private:
@@ -27,6 +31,8 @@ private:
     bool areSocketsConnected() const;
 
     Ui::Client *ui;
+    kvs::qt::Screen* m_screen = nullptr;
+    kvs::StochasticRenderingCompositor* m_compositor = nullptr;
     QWebSocket* m_binary_socket = nullptr;
     QWebSocket* m_text_socket = nullptr;
 

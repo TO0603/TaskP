@@ -15,6 +15,32 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
+    <item row="2" column="0">
+     <widget class="QGroupBox" name="groupBox_4">
+      <property name="title">
+       <string>Chat</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="2" column="0">
+        <widget class="QLineEdit" name="chatLineEdit">
+         <property name="placeholderText">
+          <string>Input Chat Message</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="chatPushButton">
+         <property name="text">
+          <string>Send</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QTextBrowser" name="chatTextBrowser"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
     <item row="0" column="0">
      <widget class="QGroupBox" name="groupBox_3">
       <property name="title">
@@ -72,31 +98,8 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0">
-     <widget class="QGroupBox" name="groupBox_4">
-      <property name="title">
-       <string>Chat</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_7">
-       <item row="2" column="0">
-        <widget class="QLineEdit" name="chatLineEdit">
-         <property name="placeholderText">
-          <string>Input Chat Message</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QPushButton" name="chatPushButton">
-         <property name="text">
-          <string>Send</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="QTextBrowser" name="chatTextBrowser"/>
-       </item>
-      </layout>
-     </widget>
+    <item row="0" column="1" rowspan="3">
+     <layout class="QGridLayout" name="screenArea"/>
     </item>
    </layout>
   </widget>
@@ -106,7 +109,7 @@
      <x>0</x>
      <y>0</y>
      <width>466</width>
-     <height>17</height>
+     <height>18</height>
     </rect>
    </property>
   </widget>
