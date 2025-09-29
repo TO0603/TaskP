@@ -8,6 +8,11 @@
 #endif
 #include "../Shared/json.hpp"
 
+#include <kvs/HydrogenVolumeData>
+#include <kvs/TransferFunction>
+#include <kvs/RGBColor>
+#include <kvs/CellByCellMetropolisSampling>
+
 struct ClientSession
 {
 };

@@ -11,6 +11,9 @@
 #include <kvs/qt/Screen>
 #include <kvs/StochasticRenderingCompositor>
 
+#include <kvs/PointObject>
+#include <kvs/ParticleBasedRenderer>
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class Client;
@@ -29,12 +32,15 @@ private:
     void initialize();
     void updateButtons();
     bool areSocketsConnected() const;
+    void registerObject( kvs::PointObject* pointObject );
+    void replaceObject( kvs::PointObject* pointObject );
 
     Ui::Client *ui;
     kvs::qt::Screen* m_screen = nullptr;
     kvs::StochasticRenderingCompositor* m_compositor = nullptr;
     QWebSocket* m_binary_socket = nullptr;
     QWebSocket* m_text_socket = nullptr;
+    QPair<int,int> m_server_point_object_ids    = QPair<int,int>( -1, -1 ); // サーバから送られてきたポイントオブジェクト
 
 private slots:
     void onConnect();

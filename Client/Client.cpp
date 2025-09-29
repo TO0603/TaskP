@@ -58,6 +58,35 @@ bool Client::areSocketsConnected() const
            m_text_socket->state() == QAbstractSocket::ConnectedState;
 }
 
+void Client::registerObject( kvs::PointObject* pointObject )
+{
+    kvs::glsl::ParticleBasedRenderer* renderer = new kvs::glsl::ParticleBasedRenderer();
+    renderer->enableShuffle();
+
+    kvs::Xform m_initial_camera_xfom
+        (
+            kvs::Mat4(
+                1, 0, 0, 0 ,
+                0, 1, 0, 0 ,
+                0, 0, 1, 12,
+                0, 0, 0, 1
+                )
+            );
+
+    kvs::Vec3 translationOffset = m_screen->scene()->camera()->xform().translation() - m_initial_camera_xfom.translation();
+    renderer->setTranslationOffset( translationOffset );
+    renderer->setObjectDepth( m_screen->scene()->objectManager()->xform().scaling().z() / m_screen->scene()->camera()->xform().scaling().z() );
+
+    m_server_point_object_ids = m_screen->scene()->registerObject( pointObject, renderer );
+    m_screen->update();
+}
+
+void Client::replaceObject( kvs::PointObject* pointObject )
+{
+    m_screen->scene()->replaceObject( m_server_point_object_ids.first, pointObject );
+    m_screen->update();
+}
+
 void Client::onConnect()
 {
     const QString address = ui->addressLineEdit->text().trimmed();
@@ -185,11 +214,62 @@ void Client::websocketTextMessageReceived(const QString& textMessage)
 
 void Client::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
 {
-    // メソッド名を出力
-    qDebug() << __func__;
-
-    // 受け取ったバイナリのサイズを表示
     qDebug() << "Received binary data size:" << binaryMessage.size() << "bytes";
+    const char* data_ptr = binaryMessage.constData();
+    size_t offset = 0;
+
+    // 頂点数を読み出す
+    size_t numberOfVertices = 0;
+    std::memcpy( &numberOfVertices, data_ptr + offset, sizeof( size_t ) );
+    offset += sizeof( size_t );
+
+    // 座標（float3 * N）
+    kvs::ValueArray<kvs::Real32> coords( numberOfVertices * 3 );
+    std::memcpy( coords.data(), data_ptr + offset, sizeof( kvs::Real32 ) * 3 * numberOfVertices );
+    offset += sizeof( kvs::Real32 ) * 3 * numberOfVertices;
+
+    // 色（uchar3 * N）
+    kvs::ValueArray<kvs::UInt8> colors( numberOfVertices * 3 );
+    std::memcpy( colors.data(), data_ptr + offset, sizeof( kvs::UInt8 ) * 3 * numberOfVertices );
+    offset += sizeof( kvs::UInt8 ) * 3 * numberOfVertices;
+
+    // 法線（float3 * N）
+    kvs::ValueArray<kvs::Real32> normals( numberOfVertices * 3 );
+    std::memcpy( normals.data(), data_ptr + offset, sizeof( kvs::Real32 ) * 3 * numberOfVertices );
+    offset += sizeof( kvs::Real32 ) * 3 * numberOfVertices;
+
+    // minObjectCoords（float3）
+    kvs::Vec3 minObjectCoords;
+    std::memcpy( minObjectCoords.data(), data_ptr + offset, sizeof( kvs::Real32 ) * 3 );
+    offset += sizeof( kvs::Real32 ) * 3;
+
+    // maxObjectCoords（float3）
+    kvs::Vec3 maxObjectCoords;
+    std::memcpy( maxObjectCoords.data(), data_ptr + offset, sizeof( kvs::Real32 ) * 3 );
+    offset += sizeof( kvs::Real32 ) * 3;
+
+    // kvs::PointObject の生成
+    auto* object = new kvs::PointObject();
+    object->setCoords( coords );
+    object->setColors( colors );
+    object->setNormals( normals );
+    object->setMinMaxObjectCoords( minObjectCoords, maxObjectCoords );
+    object->setMinMaxExternalCoords( minObjectCoords, maxObjectCoords );
+
+    object->setXform( m_screen->scene()->objectManager()->xform() );
+    m_screen->scene()->objectManager()->push_centering_xform();
+    m_screen->scene()->objectManager()->updateMinMaxCoords();
+    m_screen->scene()->objectManager()->updateExternalCoords();
+    m_screen->scene()->objectManager()->pop_centering_xform();
+
+    if( m_server_point_object_ids == QPair<int,int>( -1, -1 ) )
+    {
+        registerObject( object );
+    }
+    else
+    {
+        replaceObject( object );
+    }
 }
 
 void Client::websocketError( QAbstractSocket::SocketError error )
