@@ -163,7 +163,14 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
 
         delete object;
 
-        ws->send( std::string_view( buffer.data(), buffer.size() ), uWS::OpCode::BINARY );
+        std::string_view data_view(buffer.data(), buffer.size());
+
+        // binary_ws を持つ全ユーザに送信
+        for (auto& [uuid, session] : m_users) {
+            if (session.binary_ws) {
+                session.binary_ws->send(data_view, uWS::OpCode::BINARY);
+            }
+        }
     }
     else if (received.contains("type") && received["type"].get<std::string>() == "chat")
     {
@@ -174,8 +181,16 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
                     { "type", "chat" },
                     { "chat_message", chat }
                 };
-            ws->send(chat_message.dump(), uWS::OpCode::TEXT); // send は文字列に変換
-        } else {
+
+            std::string msg_str = chat_message.dump();
+
+            // text_ws を持つ全ユーザに送信
+            for (auto& [uuid, session] : m_users) {
+                if (session.text_ws) {
+                    session.text_ws->send(msg_str, uWS::OpCode::TEXT);
+                }
+            }
+        }else {
             std::cout << "[Warning] chat_message missing or invalid type" << std::endl;
         }
     }
