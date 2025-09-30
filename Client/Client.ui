@@ -15,7 +15,17 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="2" column="0">
+    <item row="0" column="1" rowspan="4">
+     <layout class="QGridLayout" name="screenArea"/>
+    </item>
+    <item row="1" column="0">
+     <widget class="QPushButton" name="requestPushButton">
+      <property name="text">
+       <string>Request</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
      <widget class="QGroupBox" name="groupBox_4">
       <property name="title">
        <string>Chat</string>
@@ -91,15 +101,12 @@
       </layout>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="QPushButton" name="requestPushButton">
+    <item row="2" column="0">
+     <widget class="QPushButton" name="debugPushButton">
       <property name="text">
-       <string>Request</string>
+       <string>Debug</string>
       </property>
      </widget>
-    </item>
-    <item row="0" column="1" rowspan="3">
-     <layout class="QGridLayout" name="screenArea"/>
     </item>
    </layout>
   </widget>

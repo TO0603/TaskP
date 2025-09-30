@@ -38,6 +38,7 @@ void Client::initialize()
     connect( ui->disconnectPushButton , &QPushButton::clicked, this, &Client::onDisconnect );   // 切断
     connect( ui->requestPushButton    , &QPushButton::clicked, this, &Client::onRequest );      // 要求(テスト)
     connect( ui->chatPushButton       , &QPushButton::clicked, this, &Client::onChat );         // チャットメッセージ送信
+    connect( ui->debugPushButton      , &QPushButton::clicked, this, &Client::onDebug );       // デバッグ
     this->show();
 }
 
@@ -90,6 +91,8 @@ void Client::replaceObject( kvs::PointObject* pointObject )
 void Client::onConnect()
 {
     const QString address = ui->addressLineEdit->text().trimmed();
+    const QString binaryAddress = address + "/binary";
+    const QString textDddress = address + "/text";
     if( address.isEmpty() ) // アドレスが空である場合は何もしない
     {
         return;
@@ -102,7 +105,7 @@ void Client::onConnect()
     connect( m_binary_socket, &QWebSocket::textMessageReceived                                     , this, &Client::websocketTextMessageReceived );     // テキストメッセージ受信
     connect( m_binary_socket, &QWebSocket::binaryMessageReceived                                   , this, &Client::websocketBinaryMessageReceived );   // バイナリメッセージ受信
     connect( m_binary_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &Client::websocketError );                   // エラー
-    m_binary_socket->open( QUrl( address ) );
+    m_binary_socket->open( QUrl( binaryAddress ) );
 
     m_text_socket = new QWebSocket();
     m_text_socket->setParent(this);
@@ -111,7 +114,7 @@ void Client::onConnect()
     connect( m_text_socket, &QWebSocket::textMessageReceived                                     , this, &Client::websocketTextMessageReceived );       // テキストメッセージ受信
     connect( m_text_socket, &QWebSocket::binaryMessageReceived                                   , this, &Client::websocketBinaryMessageReceived );     // バイナリメッセージ受信
     connect( m_text_socket, QOverload<QAbstractSocket::SocketError>::of( &QWebSocket::error )    , this, &Client::websocketError );                     // エラー
-    m_text_socket->open( QUrl( address ) );
+    m_text_socket->open( QUrl( textDddress ) );
 }
 
 void Client::onDisconnect()
@@ -171,9 +174,30 @@ void Client::onChat()
     ui->chatLineEdit->clear();
 }
 
+void Client::onDebug()
+{
+    QJsonObject jsonMessage;
+    jsonMessage["type"] = "curUsers";
+
+    QJsonDocument doc(jsonMessage);
+    QString message = doc.toJson(QJsonDocument::Compact);
+
+    m_text_socket->sendTextMessage(message);
+}
+
 void Client::binaryWebsocketConnected()
 {
     qInfo() << "Binary socket connected";
+
+    // チャンネル情報をサーバに送信
+    QJsonObject jsonObject;
+    jsonObject["type"] = "join";
+    jsonObject["uuid"] = m_user_uuid;
+    jsonObject["channel"] = "binary";
+
+    QJsonDocument doc(jsonObject);
+    m_binary_socket->sendTextMessage(doc.toJson(QJsonDocument::Compact));
+
     updateButtons();
 }
 
@@ -186,6 +210,16 @@ void Client::binaryWebsocketDisconnected()
 void Client::textWebsocketConnected()
 {
     qInfo() << "Text socket connected";
+
+    // チャンネル情報をサーバに送信
+    QJsonObject jsonObject;
+    jsonObject["type"] = "join";
+    jsonObject["uuid"] = m_user_uuid;
+    jsonObject["channel"] = "text";
+
+    QJsonDocument doc(jsonObject);
+    m_text_socket->sendTextMessage(doc.toJson(QJsonDocument::Compact));
+
     updateButtons();
 }
 

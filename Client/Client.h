@@ -41,12 +41,14 @@ private:
     QWebSocket* m_binary_socket = nullptr;
     QWebSocket* m_text_socket = nullptr;
     QPair<int,int> m_server_point_object_ids    = QPair<int,int>( -1, -1 ); // サーバから送られてきたポイントオブジェクト
+    QString m_user_uuid = QUuid::createUuid().toString();
 
 private slots:
     void onConnect();
     void onDisconnect();
     void onRequest();
     void onChat();
+    void onDebug();
 
 private slots: // WebSocket
     void binaryWebsocketConnected();                                        // 接続

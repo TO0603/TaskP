@@ -8,27 +8,45 @@ Server::Server( int port )
 
 void Server::initialize()
 {
-    m_u_web_sockets.ws<ClientSession>( "/*",
-                                      {
-                                          .open = [this]( uWS::WebSocket<false, true, ClientSession>* ws )
-                                          {
-                                              this->onOpen( ws );
-                                          },
-                                          .message = [this]( uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode opCode )
-                                          {
-                                              this->onMessage( ws, message, opCode );
-                                          },
-                                          .drain = [](uWS::WebSocket<false, true, ClientSession>* ws)
-                                          {
-                                              // 未送信バイト数を取得して表示
-                                              size_t remaining = ws->getBufferedAmount();
-                                              std::cout << "[Server] Remaining bytes to send: " << remaining << std::endl;
-                                          },
-                                          .close = [this]( uWS::WebSocket<false, true, ClientSession>* ws, int code, std::string_view msg )
-                                          {
-                                              this->onClose( ws, code, msg );
-                                          }
-                                      } );
+    // バイナリ用 WebSocket
+    m_u_web_sockets.ws<ClientSession>("/binary", {
+                                                     .open = [this](auto* ws){
+                                                      // std::cout << "binary" << std::endl;
+                                                         this->onOpen(ws, "binary");
+                                                     },
+                                                     .message = [this](auto* ws, std::string_view message, uWS::OpCode opCode){
+                                                         nlohmann::json received = nlohmann::json::parse(message);
+                                                         // std::cout << "binary" << std::endl;
+                                                         this->onMessage( ws, message, opCode );
+                                                     },
+                                                     .drain = [](auto* ws){
+                                                         size_t remaining = ws->getBufferedAmount();
+                                                         std::cout << "[Server] Remaining bytes to send (binary): " << remaining << std::endl;
+                                                     },
+                                                     .close = [this](auto* ws, int code, std::string_view msg){
+                                                         this->onClose(ws, code, msg);
+                                                     }
+                                                 });
+
+    // テキスト用 WebSocket
+    m_u_web_sockets.ws<ClientSession>("/text", {
+                                                   .open = [this](auto* ws){
+                                                    // std::cout << "text" << std::endl;
+                                                       this->onOpen(ws, "text");
+                                                   },
+                                                   .message = [this](auto* ws, std::string_view message, uWS::OpCode opCode){
+                                                       nlohmann::json received = nlohmann::json::parse(message);
+                                                       // std::cout << "text" << std::endl;
+                                                       this->onMessage( ws, message, opCode );
+                                                   },
+                                                   .drain = [](auto* ws){
+                                                       size_t remaining = ws->getBufferedAmount();
+                                                       std::cout << "[Server] Remaining bytes to send (text): " << remaining << std::endl;
+                                                   },
+                                                   .close = [this](auto* ws, int code, std::string_view msg){
+                                                       this->onClose(ws, code, msg);
+                                                   }
+                                               });
 
     m_u_web_sockets.listen( m_port, [this]( auto* token )
                            {
@@ -39,23 +57,72 @@ void Server::initialize()
                            } ).run();
 }
 
-void Server::onOpen( uWS::WebSocket<false, true, ClientSession>* ws )
+void Server::onOpen( uWS::WebSocket<false, true, ClientSession>* ws, std::string socketType )
 {
-    std::cout << __func__ << std::endl;
+    std::cout << "[Server] Connection opened (" << socketType << ")" << std::endl;
 }
 
 void Server::onClose( uWS::WebSocket<false, true, ClientSession>* ws, int, std::string_view )
 {
-    std::cout << __func__ << std::endl;
+    for(auto it = m_users.begin(); it != m_users.end(); )
+    {
+        auto& session = it->second;
+        if(session.binary_ws == ws) session.binary_ws = nullptr;
+        if(session.text_ws   == ws) session.text_ws   = nullptr;
+
+        if(!session.binary_ws && !session.text_ws)
+        {
+            std::cout << "[Server] User " << it->first << " disconnected" << std::endl;
+            it = m_users.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode )
 {
-    std::cout << __func__ << std::endl;
     nlohmann::json received;
     received = nlohmann::json::parse(message);
 
-    if (received.contains("type") && received["type"].get<std::string>() == "request")
+    if(received.contains("type") && received["type"] == "join")
+    {
+        std::string user_uuid = received["uuid"];   // クライアントから送られてきたUUID
+        std::string channel = received["channel"];  // "binary" or "text"
+
+        auto it = m_users.find(user_uuid);
+        if( it == m_users.end() )
+        {
+            // 新規ユーザの場合
+            ClientSession session;
+            session.uuid = user_uuid;
+            session.userNumber = m_next_user_number++;
+            if( channel == "binary" ) session.binary_ws = ws;
+            else if( channel == "text" ) session.text_ws = ws;
+            m_users[user_uuid] = session;
+            std::cout << "[Server] User " << session.uuid << " (userNumber=" << session.userNumber << ") connected (" << channel << ")" << std::endl;
+        }
+        else
+        {
+            // 既存ユーザの場合、接続してきたチャンネルだけセット
+            if( channel == "binary" ) it->second.binary_ws = ws;
+            else if( channel == "text" ) it->second.text_ws = ws;
+
+            std::cout << "[Server] User " << it->second.uuid << " (userNumber=" << it->second.userNumber << ") connected (" << channel << ")" << std::endl;
+        }
+    }
+    else if(received.contains("type") && received["type"] == "curUsers")
+    {
+        std::cout << "[Server] Current connected users:" << std::endl;
+        for (auto& [uuid, session] : m_users)
+        {
+            // session は ClientSession のオブジェクトなので '.' を使う
+            std::cout << "  userNumber: " << session.userNumber << ", uuid: " << session.uuid << std::endl;
+        }
+    }
+    else if (received.contains("type") && received["type"].get<std::string>() == "request")
     {
         auto* volume = new kvs::HydrogenVolumeData( { 32, 32, 32 } );
         const auto repeat = 4; // number of repetitions
