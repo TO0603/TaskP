@@ -21,7 +21,7 @@ void Server::initialize()
                                                      },
                                                      .drain = [](auto* ws){
                                                          size_t remaining = ws->getBufferedAmount();
-                                                         std::cout << "[Server] Remaining bytes to send (binary): " << remaining << std::endl;
+                                                         std::cout << "[Server] Remaining bytes to send (binary)" << " [" << ws->getUserData()->userNumber << "] :" << remaining << std::endl;
                                                      },
                                                      .close = [this](auto* ws, int code, std::string_view msg){
                                                          this->onClose(ws, code, msg);
@@ -41,7 +41,7 @@ void Server::initialize()
                                                    },
                                                    .drain = [](auto* ws){
                                                        size_t remaining = ws->getBufferedAmount();
-                                                       std::cout << "[Server] Remaining bytes to send (text): " << remaining << std::endl;
+                                                       std::cout << "[Server] Remaining bytes to send (text)" << " [" << ws->getUserData()->userNumber << "] :" << remaining << std::endl;
                                                    },
                                                    .close = [this](auto* ws, int code, std::string_view msg){
                                                        this->onClose(ws, code, msg);
@@ -99,18 +99,33 @@ void Server::onMessage( uWS::WebSocket<false, true, ClientSession>* ws, std::str
             ClientSession session;
             session.uuid = user_uuid;
             session.userNumber = m_next_user_number++;
-            if( channel == "binary" ) session.binary_ws = ws;
-            else if( channel == "text" ) session.text_ws = ws;
+            if( channel == "binary" )
+            {
+                session.binary_ws = ws;
+                ws->getUserData()->userNumber = session.userNumber;
+            }
+            else if( channel == "text" )
+            {
+                session.text_ws = ws;
+                ws->getUserData()->userNumber = session.userNumber;
+            }
             m_users[user_uuid] = session;
-            std::cout << "[Server] User " << session.uuid << " (userNumber=" << session.userNumber << ") connected (" << channel << ")" << std::endl;
+            std::cout << "[Server] User " << session.uuid << " (userNumber = " << session.userNumber << ") connected (" << channel << ")" << std::endl;
         }
         else
         {
             // 既存ユーザの場合、接続してきたチャンネルだけセット
-            if( channel == "binary" ) it->second.binary_ws = ws;
-            else if( channel == "text" ) it->second.text_ws = ws;
-
-            std::cout << "[Server] User " << it->second.uuid << " (userNumber=" << it->second.userNumber << ") connected (" << channel << ")" << std::endl;
+            if( channel == "binary" )
+            {
+                it->second.binary_ws = ws;
+                ws->getUserData()->userNumber = it->second.userNumber;
+            }
+            else if( channel == "text" )
+            {
+                it->second.text_ws = ws;
+                ws->getUserData()->userNumber = it->second.userNumber;
+            }
+            std::cout << "[Server] User " << it->second.uuid << " (userNumber = " << it->second.userNumber << ") connected (" << channel << ")" << std::endl;
         }
     }
     else if(received.contains("type") && received["type"] == "curUsers")
