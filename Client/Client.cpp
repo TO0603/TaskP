@@ -16,6 +16,8 @@ Client::Client( kvs::qt::Application& app, QWidget *parent )
 Client::~Client()
 {
     delete ui;
+    ui = nullptr;
+
     if( m_binary_socket )
     {
         m_binary_socket->deleteLater();
