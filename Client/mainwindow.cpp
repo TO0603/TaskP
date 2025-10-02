@@ -95,12 +95,30 @@ void MainWindow::websocketTextMessageReceived( const QString& textMessage ) // �
 #include <QFile>
 void MainWindow::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
 {
-    // メソッド名を出力
-    qDebug() << __func__;
+    // ヘッダサイズ
+    if (binaryMessage.size() < (int)(sizeof(uint32_t) + sizeof(uint64_t))) {
+        qWarning() << "Invalid binary message received, too small.";
+        return;
+    }
 
-    // 受け取ったバイナリのサイズを表示
-    qDebug() << "Received binary data size:" << binaryMessage.size() << "bytes";
+    const char* data = binaryMessage.constData();
+
+    uint32_t messageId;
+    std::memcpy(&messageId, data, sizeof(uint32_t));
+
+    uint64_t payloadSize;
+    std::memcpy(&payloadSize, data + sizeof(uint32_t), sizeof(uint64_t));
+
+    QByteArray payload = binaryMessage.mid(sizeof(uint32_t) + sizeof(uint64_t));
+
+    qDebug() << "Received message ID:" << messageId
+             << "Payload size:" << payloadSize
+             << "Actual received size:" << payload.size();
 }
+
+
+
+
 
 void MainWindow::websocketError( QAbstractSocket::SocketError error )
 {
