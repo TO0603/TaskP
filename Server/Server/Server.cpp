@@ -12,23 +12,34 @@ void Server::initialize()
 {
     uWS::App::WebSocketBehavior<ClientSession> behavior;
 
-    behavior.open = [this](uWS::WebSocket<false, true, ClientSession>* ws){
+    // 接続確立時に呼ばれる。ユーザデータの初期化やログ出力に使用
+    behavior.open = [this](uWS::WebSocket<false, true, ClientSession>* ws)
+    {
         this->onOpen(ws);
     };
 
-    behavior.message = [this](uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode op){
+    // メッセージ受信時に呼ばれる。バイナリやテキストを処理する
+    behavior.message = [this](uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode op)
+    {
         this->onMessage(ws, message, op);
     };
 
+    // メッセージがドロップされた場合に呼ばれる
+    // maxBackpressure や closeOnBackpressureLimit により送信失敗時に発生
     behavior.dropped = [this](auto* ws, std::string_view msg, uWS::OpCode op){
         this->onDropped(ws, msg, op);
     };
 
+    // バッファが空き、送信可能になったときに呼ばれる
+    // sendQueue に残ったメッセージを送信再開するタイミングで使用
     behavior.drain = [this](uWS::WebSocket<false, true, ClientSession>* ws){
         this->onDrain(ws);
     };
 
-    behavior.close = [this](uWS::WebSocket<false, true, ClientSession>* ws, int code, std::string_view msg){
+    // クライアントが切断したときに呼ばれる
+    // クリーンアップやログ出力に使用
+    behavior.close = [this](uWS::WebSocket<false, true, ClientSession>* ws, int code, std::string_view msg)
+    {
         this->onClose(ws, code, msg);
     };
 
@@ -38,26 +49,30 @@ void Server::initialize()
 
     m_u_web_sockets.listen(m_port, [this](auto* token){
                        if(token)
+                       {
                            std::cout << "[Server] Listening on port " << m_port << std::endl;
+                       }
                        else
+                       {
                            std::cerr << "[Server] Failed to listen on port " << m_port << std::endl;
+                       }
                    }).run();
 }
 
 void Server::onOpen(uWS::WebSocket<false, true, ClientSession>* ws)
 {
-    std::cout << __func__ << std::endl;
+
     ws->getUserData()->nextMessageId = 0;
 }
 
 void Server::onClose(uWS::WebSocket<false, true, ClientSession>* ws, int, std::string_view)
 {
-    std::cout << __func__ << std::endl;
+    std::cout << "[Server] onClose" << std::endl;
 }
 
 void Server::onMessage(uWS::WebSocket<false, true, ClientSession>* ws, std::string_view message, uWS::OpCode)
 {
-    std::cout << "on message" << std::endl;
+    std::cout << "[Server] onMessage" << std::endl;
     nlohmann::json received = nlohmann::json::parse(message);
 
     if (received.contains("type") && received["type"].get<std::string>() == "request")
@@ -124,7 +139,6 @@ void Server::onDropped(uWS::WebSocket<false, true, ClientSession>* ws,
                        std::string_view /*msg*/, uWS::OpCode /*op*/)
 {
     std::cout << "Message dropped. Waiting for drain before retry..." << std::endl;
-    // dropped時には何もせず、キューに残しておく
 }
 
 void Server::onDrain(uWS::WebSocket<false, true, ClientSession>* ws)
