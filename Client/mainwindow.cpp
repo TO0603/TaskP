@@ -101,19 +101,20 @@ void MainWindow::websocketBinaryMessageReceived(const QByteArray& binaryMessage)
         return;
     }
 
-    const char* data = binaryMessage.constData();
-
+    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(binaryMessage.constData());
     uint32_t messageId;
-    std::memcpy(&messageId, data, sizeof(uint32_t));
-
+    uint32_t chunkIndex;
     uint64_t payloadSize;
-    std::memcpy(&payloadSize, data + sizeof(uint32_t), sizeof(uint64_t));
 
-    QByteArray payload = binaryMessage.mid(sizeof(uint32_t) + sizeof(uint64_t));
+    std::memcpy(&messageId, ptr, sizeof(messageId));
+    std::memcpy(&chunkIndex, ptr + sizeof(messageId), sizeof(chunkIndex));
+    std::memcpy(&payloadSize, ptr + sizeof(messageId) + sizeof(chunkIndex), sizeof(payloadSize));
 
     qDebug() << "Received message ID:" << messageId
+             << "Chunk index:" << chunkIndex
              << "Payload size:" << payloadSize
-             << "Actual received size:" << payload.size();
+             << "Actual received size:" << binaryMessage.size() - sizeof(messageId) - sizeof(chunkIndex) - sizeof(payloadSize);
+
 }
 
 

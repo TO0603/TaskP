@@ -72,19 +72,30 @@ void Server::onMessage(uWS::WebSocket<false, true, ClientSession>* ws, std::stri
 
         // チャンク化してキューに追加
         size_t offset = 0;
+        uint32_t chunkIndex = 0;
         while(offset < binaryData.size())
         {
             size_t chunkSize = std::min(CHUNK_SIZE, binaryData.size() - offset);
 
-            std::vector<uint8_t> buffer(sizeof(messageId) + sizeof(uint64_t) + chunkSize);
-            std::memcpy(buffer.data(), &messageId, sizeof(messageId));
+            std::vector<uint8_t> buffer(sizeof(messageId) + sizeof(chunkIndex) + sizeof(uint64_t) + chunkSize);
+            size_t pos = 0;
+
+            std::memcpy(buffer.data() + pos, &messageId, sizeof(messageId));
+            pos += sizeof(messageId);
+
+            std::memcpy(buffer.data() + pos, &chunkIndex, sizeof(chunkIndex));
+            pos += sizeof(chunkIndex);
+
             uint64_t payloadSize = chunkSize;
-            std::memcpy(buffer.data() + sizeof(messageId), &payloadSize, sizeof(payloadSize));
-            std::memcpy(buffer.data() + sizeof(messageId) + sizeof(payloadSize),
-                        binaryData.data() + offset, chunkSize);
+            std::memcpy(buffer.data() + pos, &payloadSize, sizeof(payloadSize));
+            pos += sizeof(payloadSize);
+
+            std::memcpy(buffer.data() + pos, binaryData.data() + offset, chunkSize);
 
             userData->sendQueue.push_back(std::move(buffer));
+
             offset += chunkSize;
+            ++chunkIndex;
         }
 
         // 送信開始
