@@ -1,5 +1,7 @@
 #include "Server.h"
 
+constexpr size_t CHUNK_SIZE = 1 * 1024 * 1024; // 1MBごとに送信
+
 Server::Server(int port)
     : m_port(port)
 {
@@ -60,29 +62,33 @@ void Server::onMessage(uWS::WebSocket<false, true, ClientSession>* ws, std::stri
 
     if (received.contains("type") && received["type"].get<std::string>() == "request")
     {
+        constexpr size_t dataSize = 100ULL * 1024ULL * 1024ULL; // 100MB
+        std::vector<uint8_t> binaryData(dataSize);
+        for (size_t i = 0; i < dataSize; ++i)
+            binaryData[i] = static_cast<uint8_t>(i % 256);
+
+        auto* userData = ws->getUserData();
+        uint32_t messageId = userData->nextMessageId++;
+
+        // チャンク化してキューに追加
+        size_t offset = 0;
+        while(offset < binaryData.size())
         {
-            constexpr size_t dataSize = 100ULL * 1024ULL * 1024ULL; // 100MB
-            std::vector<uint8_t> binaryData(dataSize);
+            size_t chunkSize = std::min(CHUNK_SIZE, binaryData.size() - offset);
 
-            for (size_t i = 0; i < dataSize; ++i)
-                binaryData[i] = static_cast<uint8_t>(i % 256);
-
-            auto* userData = ws->getUserData();
-            uint32_t messageId = userData->nextMessageId++;
-            uint64_t payloadSize = binaryData.size();
-
-            // ヘッダ + ペイロード
-            std::vector<uint8_t> buffer(sizeof(messageId) + sizeof(payloadSize) + binaryData.size());
+            std::vector<uint8_t> buffer(sizeof(messageId) + sizeof(uint64_t) + chunkSize);
             std::memcpy(buffer.data(), &messageId, sizeof(messageId));
+            uint64_t payloadSize = chunkSize;
             std::memcpy(buffer.data() + sizeof(messageId), &payloadSize, sizeof(payloadSize));
-            std::memcpy(buffer.data() + sizeof(messageId) + sizeof(payloadSize), binaryData.data(), binaryData.size());
+            std::memcpy(buffer.data() + sizeof(messageId) + sizeof(payloadSize),
+                        binaryData.data() + offset, chunkSize);
 
-            // キューに格納
             userData->sendQueue.push_back(std::move(buffer));
-
-            // 送信開始
-            sendNext(ws);
+            offset += chunkSize;
         }
+
+        // 送信開始
+        sendNext(ws);
     }
 }
 
