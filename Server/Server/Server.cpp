@@ -30,6 +30,8 @@ void Server::initialize()
         this->onClose(ws, code, msg);
     };
 
+    behavior.maxBackpressure = 16 * 1024 * 1024;   // 16MB
+    behavior.closeOnBackpressureLimit = false;      // limit に達しても切断しない
     m_u_web_sockets.ws<ClientSession>("/*", std::move(behavior));
 
     m_u_web_sockets.listen(m_port, [this](auto* token){
@@ -96,13 +98,16 @@ void Server::sendNext(uWS::WebSocket<false, true, ClientSession>* ws)
     if (sent) {
         userData->sendQueue.pop_front();
         if (!userData->sendQueue.empty()) sendNext(ws);
+    } else {
+        std::cout << "Backpressure, wait for drain" << std::endl;
     }
 }
 
-void Server::onDropped(uWS::WebSocket<false, true, ClientSession>* ws, std::string_view /*msg*/, uWS::OpCode /*op*/)
+void Server::onDropped(uWS::WebSocket<false, true, ClientSession>* ws,
+                       std::string_view /*msg*/, uWS::OpCode /*op*/)
 {
-    std::cout << "Message dropped, will retry..." << std::endl;
-    sendNext(ws);
+    std::cout << "Message dropped. Waiting for drain before retry..." << std::endl;
+    // dropped時には何もせず、キューに残しておく
 }
 
 void Server::onDrain(uWS::WebSocket<false, true, ClientSession>* ws)
